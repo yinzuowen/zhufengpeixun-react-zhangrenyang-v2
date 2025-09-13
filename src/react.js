@@ -13,8 +13,17 @@ function createElement(type, config, children) {
     };
 }
 
+class Component {
+    static isReactComponent = true;
+
+    constructor(props) {
+        this.props = props;
+    }
+}
+
 const React = {
     createElement,
+    Component,
 };
 
 export default React;

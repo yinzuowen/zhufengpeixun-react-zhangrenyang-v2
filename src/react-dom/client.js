@@ -6,6 +6,11 @@ function renderElement(element) {
     const { type, props } = element;
 
     if (typeof type === 'function') {
+        if (type.isReactComponent) {
+            const instance = new type(props);
+            return renderElement(instance.render());
+        }
+
         const functionComponent = type(props);
         return renderElement(functionComponent);
     }
