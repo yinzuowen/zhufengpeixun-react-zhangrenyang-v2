@@ -5,6 +5,11 @@ function renderElement(element) {
 
     const { type, props } = element;
 
+    if (typeof type === 'function') {
+        const functionComponent = type(props);
+        return renderElement(functionComponent);
+    }
+
     const domElement = document.createElement(type);
 
     Object.keys(props).forEach((key) => {
