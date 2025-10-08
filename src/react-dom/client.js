@@ -1,10 +1,12 @@
 import { REACT_TEXT } from '../constants';
 import { isUndefined, wrapToArray } from '../utils';
+import setupEventDelegation from './event';
 
 function createRoot(container) {
     const root = {
         render(rootVdom) {
             mountVdom(rootVdom, container);
+            setupEventDelegation(container);
         },
     };
 
@@ -77,6 +79,12 @@ function updateProps(domElement, oldProps = {}, newProps = {}) {
 
         if (key === 'style') {
             Object.assign(domElement.style, newProps[key]);
+        } else if (key.startsWith("on")) {
+            if (!domElement.reactEvents)  {
+                domElement.reactEvents = {};
+            }
+
+            domElement.reactEvents[key] = newProps[key];
         } else {
             domElement[key] = newProps[key];
         }
