@@ -10,6 +10,7 @@ const phases = ['capture', 'bubble'];
 function createSyntheticEvent(nativeEvent) {
     let isDefaultPrevented = false;
     let isPropagationStopped = false;
+    let isImmediatePropagationStopped = false;
 
     const target = {
         nativeEvent,
@@ -31,11 +32,23 @@ function createSyntheticEvent(nativeEvent) {
 
             isPropagationStopped = true;
         },
+        stopImmediatePropagation() {
+            if (nativeEvent.stopImmediatePropagation) {
+                nativeEvent.stopImmediatePropagation();
+            } else {
+                nativeEvent.cancelBubble = true;
+            }
+
+            isImmediatePropagationStopped = true;
+        },
         isDefaultPrevented() {
             return isDefaultPrevented;
         },
         isPropagationStopped() {
             return isPropagationStopped;
+        },
+        isImmediatePropagationStopped() {
+            return isImmediatePropagationStopped;
         },
     };
 
@@ -77,10 +90,14 @@ function setupEventDelegation(container) {
 
                     const methodName = eventTypeMethods[eventType][phase];
 
+                    // syntheticEvent 的 target 属性是不变的，点击哪个元素就是哪个元素
                     for (let domElement of domElements) {
                         if (syntheticEvent.isPropagationStopped()) {
                             break;
                         }
+                        
+                        // syntheticEvent 的 currentTarget 属性是会变的，在哪个元素上执行事件回调函数，就是哪个元素
+                        syntheticEvent.currentTarget = domElement;
 
                         domElement.reactEvents?.[methodName]?.(syntheticEvent);
                     }
