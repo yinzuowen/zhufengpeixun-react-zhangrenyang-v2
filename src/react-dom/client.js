@@ -23,7 +23,7 @@ function mountVdom(vdom, parentDOM) {
     parentDOM.appendChild(domElement);
 }
 
-function createDOMElement(vdom) {
+export function createDOMElement(vdom) {
     if (isUndefined(vdom)) {
         return null;
     }
@@ -53,13 +53,18 @@ function createDOMElementFromTextComponent(vdom) {
 function createDOMElementFromClassComponent(vdom) {
     const { type, props } = vdom;
     const instance = new type(props);
+    vdom.instance = instance;
     const renderVdom = instance.render();
+    // 将渲染的 vdom 赋值给 instance 的 oldRenderVdom 属性
+    instance.oldRenderVdom = renderVdom;
     return createDOMElement(renderVdom);
 }
 
 function createDOMElementFromFunctionComponent(vdom) {
     const { type, props } = vdom;
     const renderVdom = type(props);
+    // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
+    vdom.oldRenderVdom = renderVdom;
     return createDOMElement(renderVdom);
 }
 
@@ -68,6 +73,7 @@ function createDOMElementFromNativeComponent(vdom) {
     const domElement = document.createElement(type);
     updateProps(domElement, {}, props);
     mountChildren(vdom, domElement);
+    vdom.domElement = domElement;
     return domElement;
 }
 
@@ -79,8 +85,8 @@ function updateProps(domElement, oldProps = {}, newProps = {}) {
 
         if (key === 'style') {
             Object.assign(domElement.style, newProps[key]);
-        } else if (key.startsWith("on")) {
-            if (!domElement.reactEvents)  {
+        } else if (key.startsWith('on')) {
+            if (!domElement.reactEvents) {
                 domElement.reactEvents = {};
             }
 
@@ -96,6 +102,29 @@ function mountChildren(vdom, domElement) {
     children.forEach((child) => {
         mountVdom(child, domElement);
     });
+}
+
+/**
+ * 获取虚拟DOM对应的真实DOM元素
+ */
+export function getDOMElementByVdom(vdom) {
+    if (isUndefined(vdom)) {
+        return null;
+    }
+
+    const { type } = vdom;
+
+    if (typeof type === 'function') {
+        // 类组件
+        if (type.isReactComponent) {
+            return getDOMElementByVdom(vdom.instance.oldRenderVdom);
+        }
+
+        // 函数组件
+        return getDOMElementByVdom(vdom.oldRenderVdom);
+    }
+
+    return vdom.domElement;
 }
 
 const ReactDOM = {
