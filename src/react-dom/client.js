@@ -51,8 +51,11 @@ function createDOMElementFromTextComponent(vdom) {
 }
 
 function createDOMElementFromClassComponent(vdom) {
-    const { type, props } = vdom;
+    const { type, props, ref } = vdom;
     const instance = new type(props);
+    if (ref) {
+        ref.current = instance;
+    }
     vdom.instance = instance;
     const renderVdom = instance.render();
     // 将渲染的 vdom 赋值给 instance 的 oldRenderVdom 属性
