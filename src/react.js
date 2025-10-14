@@ -21,7 +21,7 @@ export function flushDirtyComponents() {
 }
 
 function createElement(type, config, children) {
-    const props = { ...config };
+    const { ref, ...props } = config;
 
     if (arguments.length > 3) {
         props.children = Array.prototype.slice
@@ -34,6 +34,13 @@ function createElement(type, config, children) {
     return {
         type,
         props,
+        ref,
+    };
+}
+
+function createRef() {
+    return {
+        current: null,
     };
 }
 
@@ -103,6 +110,7 @@ class Component {
 
 const React = {
     createElement,
+    createRef,
     Component,
 };
 

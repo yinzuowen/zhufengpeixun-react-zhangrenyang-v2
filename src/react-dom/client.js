@@ -69,10 +69,13 @@ function createDOMElementFromFunctionComponent(vdom) {
 }
 
 function createDOMElementFromNativeComponent(vdom) {
-    const { type, props } = vdom;
+    const { type, props, ref } = vdom;
     const domElement = document.createElement(type);
     updateProps(domElement, {}, props);
     mountChildren(vdom, domElement);
+    if (ref) {
+        ref.current = domElement;
+    }
     vdom.domElement = domElement;
     return domElement;
 }
