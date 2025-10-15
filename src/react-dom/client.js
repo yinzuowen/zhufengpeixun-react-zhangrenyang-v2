@@ -1,4 +1,4 @@
-import { REACT_TEXT } from '../constants';
+import { REACT_TEXT, REACT_FORWARD_REF } from '../constants';
 import { isUndefined, wrapToArray } from '../utils';
 import setupEventDelegation from './event';
 
@@ -29,6 +29,10 @@ export function createDOMElement(vdom) {
     }
 
     const { type } = vdom;
+
+    if (type.$$typeof === REACT_FORWARD_REF) {
+        return createDOMElementFromForwardRefComponent(vdom);
+    }
 
     if (type === REACT_TEXT) {
         return createDOMElementFromTextComponent(vdom);
@@ -66,6 +70,14 @@ function createDOMElementFromClassComponent(vdom) {
 function createDOMElementFromFunctionComponent(vdom) {
     const { type, props } = vdom;
     const renderVdom = type(props);
+    // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
+    vdom.oldRenderVdom = renderVdom;
+    return createDOMElement(renderVdom);
+}
+
+function createDOMElementFromForwardRefComponent(vdom) {
+    const { type, props, ref } = vdom;
+    const renderVdom = type.render(props, ref);
     // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
     vdom.oldRenderVdom = renderVdom;
     return createDOMElement(renderVdom);

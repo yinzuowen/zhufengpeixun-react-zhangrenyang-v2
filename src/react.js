@@ -1,3 +1,4 @@
+import { REACT_FORWARD_REF } from './constants';
 import { wrapToVdom } from './utils';
 import { createDOMElement, getDOMElementByVdom } from './react-dom/client';
 
@@ -42,6 +43,16 @@ function createRef() {
     return {
         current: null,
     };
+}
+
+/**
+ * render: 函数组件
+ */
+function forwardRef(render) {
+    return {
+        $$typeof: REACT_FORWARD_REF,
+        render,
+    }
 }
 
 class Component {
@@ -111,6 +122,7 @@ class Component {
 const React = {
     createElement,
     createRef,
+    forwardRef,
     Component,
 };
 
