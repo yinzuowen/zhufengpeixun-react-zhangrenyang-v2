@@ -1,6 +1,6 @@
 import { REACT_FORWARD_REF } from './constants';
 import { wrapToVdom } from './utils';
-import { createDOMElement, getDOMElementByVdom } from './react-dom/client';
+import { compareVdom, getParentDOMByVdom } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
 
@@ -15,14 +15,14 @@ export function setIsBatchingUpdate(value) {
  */
 export function flushDirtyComponents() {
     dirtyComponents.forEach((component) => {
-        component.forceUpdate();
+        component.updateIfNeeded();
     });
     dirtyComponents.clear();
     isBatchingUpdate = false;
 }
 
 function createElement(type, config, children) {
-    const { ref, ...props } = config;
+    const { ref, _self, _source, ...props } = config;
 
     if (arguments.length > 3) {
         props.children = Array.prototype.slice
@@ -52,7 +52,7 @@ function forwardRef(render) {
     return {
         $$typeof: REACT_FORWARD_REF,
         render,
-    }
+    };
 }
 
 class Component {
@@ -82,7 +82,7 @@ class Component {
                 ...newState,
             };
 
-            this.forceUpdate();
+            this.updateIfNeeded();
 
             if (typeof callback === 'function') {
                 callback();
@@ -90,14 +90,20 @@ class Component {
         }
     }
 
-    forceUpdate() {
-        this.state = this.accumulateState();
-        const newRenderVdom = this.render();
-        const newDOMElement = createDOMElement(newRenderVdom);
-        const oldDOMElement = getDOMElementByVdom(this.oldRenderVdom);
-        const parentDOM = oldDOMElement.parentNode;
-        parentDOM.replaceChild(newDOMElement, oldDOMElement);
-        this.oldRenderVdom = newRenderVdom;
+    updateIfNeeded() {
+        const nextState = this.accumulateState();
+        this.state = nextState;
+        const shouldUpdate = this.shouldComponentUpdate?.(
+            this.nextProps,
+            nextState,
+        );
+        if (this.nextProps){
+            this.props = this.nextProps;
+            this.nextProps = null;
+        }
+        if (shouldUpdate) {
+            this.forceUpdate();
+        }
     }
 
     accumulateState = () => {
@@ -117,6 +123,22 @@ class Component {
 
         return newState;
     };
+
+    forceUpdate() {
+        this.componentWillUpdate?.();
+        const newRenderVdom = this.render();
+        const parentDOM = getParentDOMByVdom(this.oldRenderVdom);
+        compareVdom(parentDOM, this.oldRenderVdom, newRenderVdom);
+        this.oldRenderVdom = newRenderVdom;
+        this.componentDidUpdate?.(this.props, this.state);
+    }
+
+    emitUpdate(nextProps) {
+        this.nextProps = nextProps;
+        if (this.nextProps || this.pendingStates.length > 0) {
+            this.updateIfNeeded();
+        }
+    }
 }
 
 const React = {
