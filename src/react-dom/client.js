@@ -86,7 +86,8 @@ function createDOMElementFromClassComponent(vdom) {
     instance.oldRenderVdom = renderVdom;
     const domElement = createDOMElement(renderVdom);
     if (instance.componentDidMount) {
-        domElement.componentDidMount = instance.componentDidMount;
+        domElement.componentDidMount =
+            instance.componentDidMount.bind(instance);
     }
     return domElement;
 }
@@ -259,21 +260,66 @@ function updateNativeComponent(oldVdom, newVdom) {
     updateChildren(domElement, oldVdom.props.children, newVdom.props.children);
 }
 
-function updateChildren(domElement, oldVChildren, newVChildren) {
+function updateChildren(parentDOM, oldVChildren, newVChildren) {
     oldVChildren = wrapToArray(oldVChildren);
     newVChildren = wrapToArray(newVChildren);
 
-    const maxLength = Math.max(oldVChildren.length, newVChildren.length);
+    let lastPlacedNode = null;
 
-    for (let i = 0; i < maxLength; i++) {
-        const nextDOMElement = getNextDOMElement(oldVChildren, i + 1);
-        compareVdom(
-            domElement,
-            oldVChildren[i],
-            newVChildren[i],
-            nextDOMElement,
-        );
+    function placeChildElement(domElement) {
+        if (isDefined(lastPlacedNode)) {
+            if (lastPlacedNode.nextSibling !== domElement) {
+                parentDOM.insertBefore(domElement, lastPlacedNode.nextSibling);
+            }
+        } else {
+            parentDOM.insertBefore(domElement, parentDOM.firstChild);
+        }
+
+        lastPlacedNode = domElement;
     }
+
+    for (let index = 0; index < newVChildren.length; index++) {
+        const newVChild = newVChildren[index];
+
+        if (newVChild) {
+            const oldVChildIndex = oldVChildren.findIndex((oldVChild) =>
+                isSameVNode(oldVChild, newVChild),
+            );
+
+            if (oldVChildIndex > -1) {
+                const oldVChild = oldVChildren[oldVChildIndex];
+                updateVdom(oldVChild, newVChild);
+                const oldDOMElement = getDOMElementByVdom(oldVChild);
+                placeChildElement(oldDOMElement);
+                oldVChildren.splice(oldVChildIndex, 1);
+            } else {
+                const newDOMElement = createDOMElement(newVChild);
+                placeChildElement(newDOMElement);
+            }
+        }
+    }
+
+    oldVChildren.forEach((oldVChild) => {
+        if (oldVChild) {
+            // unmountVdom(oldVChild);
+            const domElement = getDOMElementByVdom(oldVChild);
+            if (domElement) {
+                domElement.remove();
+            }
+        }
+    });
+}
+
+/**
+ * 判断两个虚拟 DOM 节点是否相同
+ */
+function isSameVNode(oldVNode, newVNode) {
+    return (
+        isDefined(oldVNode) &&
+        isDefined(newVNode) &&
+        oldVNode.type === newVNode.type &&
+        oldVNode.key === newVNode.key
+    );
 }
 
 /**

@@ -22,7 +22,7 @@ export function flushDirtyComponents() {
 }
 
 function createElement(type, config, children) {
-    const { ref, _self, _source, ...props } = config;
+    const { key, ref, ...props } = config;
 
     if (arguments.length > 3) {
         props.children = Array.prototype.slice
@@ -36,6 +36,7 @@ function createElement(type, config, children) {
         type,
         props,
         ref,
+        key
     };
 }
 
@@ -61,6 +62,10 @@ class Component {
     constructor(props) {
         this.props = props;
         this.pendingStates = [];
+    }
+
+    shouldComponentUpdate(nextProps, nextState) {
+        return true;
     }
 
     setState(partialState, callback) {
