@@ -115,7 +115,7 @@ class Component {
             this.nextProps,
             nextState,
         );
-        if (this.nextProps){
+        if (this.nextProps) {
             this.props = this.nextProps;
             this.nextProps = null;
         }
@@ -146,9 +146,10 @@ class Component {
         this.componentWillUpdate?.();
         const newRenderVdom = this.render();
         const parentDOM = getParentDOMByVdom(this.oldRenderVdom);
+        const snapshot = this.getSnapshotBeforeUpdate?.(this.props, this.state);
         compareVdom(parentDOM, this.oldRenderVdom, newRenderVdom);
         this.oldRenderVdom = newRenderVdom;
-        this.componentDidUpdate?.(this.props, this.state);
+        this.componentDidUpdate?.(this.props, this.state, snapshot);
     }
 
     emitUpdate(nextProps) {
