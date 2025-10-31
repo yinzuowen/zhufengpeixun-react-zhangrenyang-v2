@@ -1,5 +1,5 @@
 import { REACT_FORWARD_REF } from './constants';
-import { wrapToVdom } from './utils';
+import { isDefined, wrapToVdom } from './utils';
 import { compareVdom, getParentDOMByVdom } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -36,7 +36,7 @@ function createElement(type, config, children) {
         type,
         props,
         ref,
-        key
+        key,
     };
 }
 
@@ -62,6 +62,7 @@ class Component {
     constructor(props) {
         this.props = props;
         this.pendingStates = [];
+        this.nextProps = null;
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -96,7 +97,19 @@ class Component {
     }
 
     updateIfNeeded() {
-        const nextState = this.accumulateState();
+        let nextState = this.accumulateState();
+        if (this.constructor.getDerivedStateFromProps) {
+            const derivedState = this.constructor.getDerivedStateFromProps(
+                this.nextProps,
+                this.state,
+            );
+            if (isDefined(derivedState)) {
+                nextState = {
+                    ...nextState,
+                    ...derivedState,
+                };
+            }
+        }
         this.state = nextState;
         const shouldUpdate = this.shouldComponentUpdate?.(
             this.nextProps,
