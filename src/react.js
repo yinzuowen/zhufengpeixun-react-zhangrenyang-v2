@@ -56,6 +56,21 @@ function forwardRef(render) {
     };
 }
 
+function createContext(defaultValue) {
+    const context = {
+        _currentValue: defaultValue,
+        Provider: (props) => {
+            context._currentValue = props.value;
+            return props.children;
+        },
+        Consumer: (props) => {
+            return props.children(context._currentValue);
+        },
+    };
+
+    return context;
+}
+
 class Component {
     static isReactComponent = true;
 
@@ -144,6 +159,9 @@ class Component {
 
     forceUpdate() {
         this.componentWillUpdate?.();
+        if (this.constructor.contextType) {
+            this.context = this.constructor.contextType._currentValue;
+        }
         const newRenderVdom = this.render();
         const parentDOM = getParentDOMByVdom(this.oldRenderVdom);
         const snapshot = this.getSnapshotBeforeUpdate?.(this.props, this.state);
@@ -163,6 +181,7 @@ class Component {
 const React = {
     createElement,
     createRef,
+    createContext,
     forwardRef,
     Component,
 };

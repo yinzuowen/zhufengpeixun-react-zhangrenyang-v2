@@ -77,6 +77,9 @@ function createDOMElementFromClassComponent(vdom) {
     const instance = new type(props);
     // 组件将要被挂载
     instance.componentWillMount?.();
+    if (type.contextType) {
+        instance.context = type.contextType._currentValue;
+    }
     if (ref) {
         ref.current = instance;
     }
