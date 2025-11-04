@@ -1,5 +1,5 @@
 import { REACT_FORWARD_REF } from './constants';
-import { isDefined, wrapToVdom } from './utils';
+import { isDefined, wrapToVdom, shallowEqual } from './utils';
 import { compareVdom, getParentDOMByVdom } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -22,6 +22,9 @@ export function flushDirtyComponents() {
 }
 
 function createElement(type, config, children) {
+    delete config.__self;
+    delete config.__source;
+
     const { key, ref, ...props } = config;
 
     if (arguments.length > 3) {
@@ -178,12 +181,22 @@ class Component {
     }
 }
 
+class PureComponent extends Component {
+    shouldComponentUpdate(nextProps, nextState) {
+        return !(
+            shallowEqual(this.props, nextProps) &&
+            shallowEqual(this.state, nextState)
+        );
+    }
+}
+
 const React = {
     createElement,
     createRef,
     createContext,
     forwardRef,
     Component,
+    PureComponent,
 };
 
 export default React;
