@@ -1,4 +1,4 @@
-import { REACT_TEXT, REACT_FORWARD_REF } from '../constants';
+import { REACT_TEXT, REACT_FORWARD_REF, REACT_MEMO } from '../constants';
 import { isDefined, isUndefined, wrapToArray } from '../utils';
 import setupEventDelegation from './event';
 
@@ -41,6 +41,10 @@ export function createDOMElement(vdom) {
         return createDOMElementFromForwardRefComponent(vdom);
     }
 
+    if (type.$$typeof === REACT_MEMO) {
+        return createDOMElementFromMemoComponent(vdom);
+    }
+
     if (type === REACT_TEXT) {
         return createDOMElementFromTextComponent(vdom);
     }
@@ -70,6 +74,13 @@ function createDOMElementFromTextComponent(vdom) {
     // 将创建的 DOM 元素赋值给 vdom 的 domElement 属性
     vdom.domElement = domElement;
     return domElement;
+}
+
+function createDOMElementFromMemoComponent(vdom) {
+    const { type, props } = vdom;
+    const renderVdom = type.render(props);
+    vdom.oldRenderVdom = renderVdom;
+    return createDOMElement(renderVdom);
 }
 
 function createDOMElementFromClassComponent(vdom) {
@@ -207,6 +218,8 @@ function updateVdom(oldVdom, newVdom) {
 
     if (type.$$typeof === REACT_FORWARD_REF) {
         return updateReactForwardRefComponent(oldVdom, newVdom);
+    } else if (type.$$typeof === REACT_MEMO) {
+        return updateReactMemoComponent(oldVdom, newVdom);
     } else if (type === REACT_TEXT) {
         return updateReactTextComponent(oldVdom, newVdom);
     } else if (typeof type === 'function') {
@@ -228,6 +241,22 @@ function updateReactForwardRefComponent(oldVdom, newVdom) {
         oldVdom.oldRenderVdom,
         newRenderVdom,
     );
+}
+
+function updateReactMemoComponent(oldVdom, newVdom) {
+    const { type, props } = newVdom;
+    const { render, compare } = type;
+    if (compare(oldVdom.props, props)) {
+        newVdom.oldRenderVdom = oldVdom.oldRenderVdom;
+        return;
+    }
+    const newRenderVdom = render(props);
+    compareVdom(
+        getParentDOMByVdom(oldVdom),
+        oldVdom.oldRenderVdom,
+        newRenderVdom,
+    );
+    newVdom.oldRenderVdom = newRenderVdom;
 }
 
 function updateReactTextComponent(oldVdom, newVdom) {
@@ -356,7 +385,7 @@ export function getDOMElementByVdom(vdom) {
 
     const { type } = vdom;
 
-    if (typeof type === 'function') {
+    if (typeof type === 'function' || typeof type.render === 'function') {
         // 类组件
         if (type.isReactComponent) {
             return getDOMElementByVdom(vdom.instance.oldRenderVdom);

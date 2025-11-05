@@ -1,4 +1,4 @@
-import { REACT_FORWARD_REF } from './constants';
+import { REACT_FORWARD_REF, REACT_MEMO } from './constants';
 import { isDefined, wrapToVdom, shallowEqual } from './utils';
 import { compareVdom, getParentDOMByVdom } from './react-dom/client';
 
@@ -190,6 +190,14 @@ class PureComponent extends Component {
     }
 }
 
+function memo(render, compare = shallowEqual) {
+    return {
+        $$typeof: REACT_MEMO,
+        render,
+        compare,
+    };
+}
+
 const React = {
     createElement,
     createRef,
@@ -197,6 +205,7 @@ const React = {
     forwardRef,
     Component,
     PureComponent,
+    memo,
 };
 
 export default React;
