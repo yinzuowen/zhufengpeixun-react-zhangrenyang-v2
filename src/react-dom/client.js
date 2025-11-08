@@ -2,11 +2,20 @@ import { REACT_TEXT, REACT_FORWARD_REF, REACT_MEMO } from '../constants';
 import { isDefined, isUndefined, wrapToArray } from '../utils';
 import setupEventDelegation from './event';
 
+let currentRoot = null;
+let currentRootVdom = null;
+let currentVdom = null;
+
 function createRoot(container) {
     const root = {
         render(rootVdom) {
+            currentRoot = root;
+            currentRootVdom = rootVdom;
             mountVdom(rootVdom, container);
             setupEventDelegation(container);
+        },
+        update() {
+            compareVdom(container, currentRootVdom, currentRootVdom);
         },
     };
 
@@ -107,6 +116,11 @@ function createDOMElementFromClassComponent(vdom) {
 }
 
 function createDOMElementFromFunctionComponent(vdom) {
+    vdom.hooks = {
+        hookIndex: 0,
+        hookStates: [],
+    };
+    currentVdom = vdom;
     const { type, props } = vdom;
     const renderVdom = type(props);
     // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
@@ -275,6 +289,9 @@ function updateClassComponent(oldVdom, newVdom) {
 }
 
 function updateFunctionComponent(oldVdom, newVdom) {
+    const hooks = newVdom.hooks = oldVdom.hooks;
+    hooks.hookIndex = 0;
+    currentVdom = newVdom;
     const { type, props } = newVdom;
     const newRenderVdom = type(props);
     compareVdom(
@@ -396,6 +413,21 @@ export function getDOMElementByVdom(vdom) {
     }
 
     return vdom.domElement;
+}
+
+export function useReducer(reducer, initialState) {
+    const { hooks } = currentVdom;
+    const { hookIndex, hookStates } = hooks;
+    const hookState = hookStates[hookIndex];
+    if (isUndefined(hookState)) {
+        hookStates[hookIndex] = initialState;
+    }
+    function dispatch(action) {
+        hookStates[hookIndex] = reducer(hookStates[hookIndex], action);
+        currentRoot.update();
+    }
+    hooks.hookIndex++;
+    return [hookStates[hookIndex], dispatch];
 }
 
 const ReactDOM = {

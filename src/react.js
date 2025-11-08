@@ -1,6 +1,10 @@
 import { REACT_FORWARD_REF, REACT_MEMO } from './constants';
 import { isDefined, wrapToVdom, shallowEqual } from './utils';
-import { compareVdom, getParentDOMByVdom } from './react-dom/client';
+import {
+    compareVdom,
+    getParentDOMByVdom,
+    useReducer,
+} from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
 
@@ -206,6 +210,7 @@ const React = {
     Component,
     PureComponent,
     memo,
+    useReducer,
 };
 
 export default React;
