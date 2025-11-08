@@ -289,7 +289,7 @@ function updateClassComponent(oldVdom, newVdom) {
 }
 
 function updateFunctionComponent(oldVdom, newVdom) {
-    const hooks = newVdom.hooks = oldVdom.hooks;
+    const hooks = (newVdom.hooks = oldVdom.hooks);
     hooks.hookIndex = 0;
     currentVdom = newVdom;
     const { type, props } = newVdom;
@@ -428,6 +428,18 @@ export function useReducer(reducer, initialState) {
     }
     hooks.hookIndex++;
     return [hookStates[hookIndex], dispatch];
+}
+
+const defaultReducer = (state, action) => {
+    if (typeof action === 'function') {
+        return action(state);
+    }
+
+    return action;
+};
+
+export function useState(initialState) {
+    return useReducer(defaultReducer, initialState);
 }
 
 const ReactDOM = {

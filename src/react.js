@@ -4,6 +4,7 @@ import {
     compareVdom,
     getParentDOMByVdom,
     useReducer,
+    useState,
 } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -211,6 +212,7 @@ const React = {
     PureComponent,
     memo,
     useReducer,
+    useState,
 };
 
 export default React;
