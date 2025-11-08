@@ -1,5 +1,5 @@
 import { REACT_TEXT, REACT_FORWARD_REF, REACT_MEMO } from '../constants';
-import { isDefined, isUndefined, wrapToArray } from '../utils';
+import { isDefined, isUndefined, shallowEqual, wrapToArray } from '../utils';
 import setupEventDelegation from './event';
 
 let currentRoot = null;
@@ -420,11 +420,17 @@ export function useReducer(reducer, initialState) {
     const { hookIndex, hookStates } = hooks;
     const hookState = hookStates[hookIndex];
     if (isUndefined(hookState)) {
+        // 第一次挂载，赋默认状态
         hookStates[hookIndex] = initialState;
     }
     function dispatch(action) {
-        hookStates[hookIndex] = reducer(hookStates[hookIndex], action);
-        currentRoot.update();
+        const oldState = hookStates[hookIndex];
+        const newState = reducer(oldState, action);
+
+        if (!shallowEqual(newState, oldState)) {
+            hookStates[hookIndex] = newState;
+            currentRoot.update();
+        }
     }
     hooks.hookIndex++;
     return [hookStates[hookIndex], dispatch];
@@ -440,6 +446,35 @@ const defaultReducer = (state, action) => {
 
 export function useState(initialState) {
     return useReducer(defaultReducer, initialState);
+}
+
+export function useMemo(factory, deps) {
+    const { hooks } = currentVdom;
+    const { hookIndex, hookStates } = hooks;
+
+    const hookState = hookStates[hookIndex];
+
+    // 存在，则更新
+    if (hookState) {
+        // 取出上一个memo和deps
+        const [prevMemo, prevDeps] = hookState;
+
+        // 对比deps
+        if (deps.every((dep, index) => dep === prevDeps[index])) {
+            hooks.hookIndex++;
+            return prevMemo;
+        }
+    }
+
+    // 不存在，则创建
+    const memo = factory();
+    hookStates[hookIndex] = [memo, deps];
+    hooks.hookIndex++;
+    return memo;
+}
+
+export function useCallback(callback, deps) {
+    return useMemo(() => callback, deps);
 }
 
 const ReactDOM = {

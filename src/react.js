@@ -5,6 +5,8 @@ import {
     getParentDOMByVdom,
     useReducer,
     useState,
+    useMemo,
+    useCallback,
 } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -213,6 +215,8 @@ const React = {
     memo,
     useReducer,
     useState,
+    useMemo,
+    useCallback,
 };
 
 export default React;
