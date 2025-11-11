@@ -477,6 +477,32 @@ export function useCallback(callback, deps) {
     return useMemo(() => callback, deps);
 }
 
+export function useEffect(effect, deps) {
+    const { hooks } = currentVdom;
+    const { hookIndex, hookStates } = hooks;
+    const hookState = hookStates[hookIndex];
+    let shouldRunEffect = true;
+    let prevCleanup = null;
+    if (hookState) {
+        const { cleanup, deps: prevDeps } = hookState;
+        prevCleanup = cleanup;
+        if (deps) {
+            shouldRunEffect = deps.some(
+                (dep, index) => !Object.is(dep, prevDeps[index]),
+            );
+        }
+    }
+    if (shouldRunEffect) {
+        // 在浏览器绘制之后执行，不会阻塞渲染。
+        setTimeout(() => {
+            prevCleanup?.();
+            const cleanup = effect();
+            hookStates[hookIndex] = { cleanup, deps };
+        });
+    }
+    hooks.hookIndex++;
+}
+
 const ReactDOM = {
     createRoot,
 };

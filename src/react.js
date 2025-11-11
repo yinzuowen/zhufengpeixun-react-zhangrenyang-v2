@@ -7,6 +7,7 @@ import {
     useState,
     useMemo,
     useCallback,
+    useEffect,
 } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -221,7 +222,8 @@ const React = {
     useState,
     useMemo,
     useCallback,
-    useContext
+    useContext,
+    useEffect,
 };
 
 export default React;
