@@ -478,6 +478,14 @@ export function useCallback(callback, deps) {
 }
 
 export function useEffect(effect, deps) {
+    applyEffectHook(effect, deps, setTimeout);
+}
+
+export function useLayoutEffect(effect, deps) {
+    applyEffectHook(effect, deps, queueMicrotask);
+}
+
+function applyEffectHook(effect, deps, scheduler) {
     const { hooks } = currentVdom;
     const { hookIndex, hookStates } = hooks;
     const hookState = hookStates[hookIndex];
@@ -494,13 +502,25 @@ export function useEffect(effect, deps) {
     }
     if (shouldRunEffect) {
         // 在浏览器绘制之后执行，不会阻塞渲染。
-        setTimeout(() => {
+        scheduler(() => {
             prevCleanup?.();
             const cleanup = effect();
             hookStates[hookIndex] = { cleanup, deps };
         });
     }
     hooks.hookIndex++;
+}
+
+export function useRef(initialValue) {
+    const { hooks } = currentVdom;
+    const { hookIndex, hookStates } = hooks;
+    const hookState = hookStates[hookIndex];
+    if (hookState) {
+        return hookState;
+    }
+    hookStates[hookIndex] = { current: initialValue };
+    hooks.hookIndex++;
+    return hookStates[hookIndex];
 }
 
 const ReactDOM = {

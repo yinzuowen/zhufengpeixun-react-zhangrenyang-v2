@@ -8,6 +8,8 @@ import {
     useMemo,
     useCallback,
     useEffect,
+    useLayoutEffect,
+    useRef,
 } from './react-dom/client';
 
 let isBatchingUpdate = false; // 是否处于批量更新模式
@@ -224,6 +226,8 @@ const React = {
     useCallback,
     useContext,
     useEffect,
+    useLayoutEffect,
+    useRef,
 };
 
 export default React;
