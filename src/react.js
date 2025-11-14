@@ -212,6 +212,10 @@ function useContext(context) {
     return context._currentValue;
 }
 
+function useImperativeHandle(ref, factory) {
+    ref.current = factory();
+}
+
 const React = {
     createElement,
     createRef,
@@ -228,6 +232,7 @@ const React = {
     useEffect,
     useLayoutEffect,
     useRef,
+    useImperativeHandle,
 };
 
 export default React;
