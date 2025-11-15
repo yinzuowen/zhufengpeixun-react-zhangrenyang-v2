@@ -6,6 +6,27 @@ let currentRoot = null;
 let currentRootVdom = null;
 let currentVdom = null;
 
+function initializeHooks(vdom) {
+    vdom.hooks = {
+        hookIndex: 0,
+        hookStates: [],
+    };
+    currentVdom = vdom;
+}
+
+function finalizeHooks(vdom, renderVdom) {
+    // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
+    vdom.oldRenderVdom = renderVdom;
+    currentVdom = null;
+    return createDOMElement(renderVdom);
+}
+
+function updateHooks(oldVdom, newVdom) {
+    const hooks = (newVdom.hooks = oldVdom.hooks);
+    hooks.hookIndex = 0;
+    currentVdom = newVdom;
+}
+
 function createRoot(container) {
     const root = {
         render(rootVdom) {
@@ -70,11 +91,10 @@ export function createDOMElement(vdom) {
 }
 
 function createDOMElementFromForwardRefComponent(vdom) {
+    initializeHooks(vdom);
     const { type, props, ref } = vdom;
     const renderVdom = type.render(props, ref);
-    // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
-    vdom.oldRenderVdom = renderVdom;
-    return createDOMElement(renderVdom);
+    return finalizeHooks(vdom, renderVdom);
 }
 
 function createDOMElementFromTextComponent(vdom) {
@@ -86,10 +106,10 @@ function createDOMElementFromTextComponent(vdom) {
 }
 
 function createDOMElementFromMemoComponent(vdom) {
+    initializeHooks(vdom);
     const { type, props } = vdom;
     const renderVdom = type.render(props);
-    vdom.oldRenderVdom = renderVdom;
-    return createDOMElement(renderVdom);
+    return finalizeHooks(vdom, renderVdom);
 }
 
 function createDOMElementFromClassComponent(vdom) {
@@ -116,16 +136,10 @@ function createDOMElementFromClassComponent(vdom) {
 }
 
 function createDOMElementFromFunctionComponent(vdom) {
-    vdom.hooks = {
-        hookIndex: 0,
-        hookStates: [],
-    };
-    currentVdom = vdom;
+    initializeHooks(vdom);
     const { type, props } = vdom;
     const renderVdom = type(props);
-    // 将渲染的 vdom 赋值给 vdom 的 oldRenderVdom 属性
-    vdom.oldRenderVdom = renderVdom;
-    return createDOMElement(renderVdom);
+    return finalizeHooks(vdom, renderVdom);
 }
 
 function createDOMElementFromNativeComponent(vdom) {
@@ -248,6 +262,7 @@ function updateVdom(oldVdom, newVdom) {
 }
 
 function updateReactForwardRefComponent(oldVdom, newVdom) {
+    updateHooks(oldVdom, newVdom);
     const { type, props, ref } = newVdom;
     const newRenderVdom = type.render(props, ref);
     compareVdom(
@@ -255,9 +270,11 @@ function updateReactForwardRefComponent(oldVdom, newVdom) {
         oldVdom.oldRenderVdom,
         newRenderVdom,
     );
+    newVdom.oldRenderVdom = newRenderVdom;
 }
 
 function updateReactMemoComponent(oldVdom, newVdom) {
+    updateHooks(oldVdom, newVdom);
     const { type, props } = newVdom;
     const { render, compare } = type;
     if (compare(oldVdom.props, props)) {
@@ -289,9 +306,7 @@ function updateClassComponent(oldVdom, newVdom) {
 }
 
 function updateFunctionComponent(oldVdom, newVdom) {
-    const hooks = (newVdom.hooks = oldVdom.hooks);
-    hooks.hookIndex = 0;
-    currentVdom = newVdom;
+    updateHooks(oldVdom, newVdom);
     const { type, props } = newVdom;
     const newRenderVdom = type(props);
     compareVdom(
