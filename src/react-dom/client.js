@@ -2,7 +2,8 @@ import { REACT_TEXT, REACT_FORWARD_REF, REACT_MEMO } from '../constants';
 import { isDefined, isUndefined, shallowEqual, wrapToArray } from '../utils';
 import setupEventDelegation from './event';
 
-let currentRoot = null;
+export let currentRoot = null;
+
 let currentRootVdom = null;
 let currentVdom = null;
 

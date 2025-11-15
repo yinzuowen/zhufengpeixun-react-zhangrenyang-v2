@@ -3,6 +3,7 @@ import { isDefined, wrapToVdom, shallowEqual } from './utils';
 import {
     compareVdom,
     getParentDOMByVdom,
+    currentRoot,
     useReducer,
     useState,
     useMemo,
@@ -12,23 +13,21 @@ import {
     useRef,
 } from './react-dom/client';
 
-let isBatchingUpdate = false; // 是否处于批量更新模式
-
 const dirtyComponents = new Set(); // 有待更新的组件集合
 
-export function setIsBatchingUpdate(value) {
-    isBatchingUpdate = value;
-}
+let isScheduledUpdate = false; // 是否已经调度了更新
 
-/**
- * 刷新有待更新的组件
- */
-export function flushDirtyComponents() {
-    dirtyComponents.forEach((component) => {
-        component.updateIfNeeded();
+export function scheduleUpdate() {
+    if (isScheduledUpdate) {
+        return;
+    }
+
+    isScheduledUpdate = true;
+
+    queueMicrotask(() => {
+        currentRoot?.update();
+        isScheduledUpdate = false;
     });
-    dirtyComponents.clear();
-    isBatchingUpdate = false;
 }
 
 function createElement(type, config, children) {
@@ -98,30 +97,11 @@ class Component {
     }
 
     setState(partialState, callback) {
-        // 如果处于批量更新模式
-        if (isBatchingUpdate) {
-            // 将组件添加到 dirtyComponents 中
-            dirtyComponents.add(this);
+        // 将 partialState 添加到 pendingStates 中
+        this.pendingStates.push(partialState);
 
-            // 将 partialState 添加到 pendingStates 中
-            this.pendingStates.push(partialState);
-        } else {
-            const newState =
-                typeof partialState === 'function'
-                    ? partialState(this.state)
-                    : partialState;
-
-            this.state = {
-                ...this.state,
-                ...newState,
-            };
-
-            this.updateIfNeeded();
-
-            if (typeof callback === 'function') {
-                callback();
-            }
-        }
+        // 调度更新
+        scheduleUpdate();
     }
 
     updateIfNeeded() {

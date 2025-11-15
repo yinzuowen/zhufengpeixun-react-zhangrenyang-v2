@@ -1,4 +1,4 @@
-import { setIsBatchingUpdate, flushDirtyComponents } from '../react';
+import { scheduleUpdate } from '../react';
 
 const eventTypeMethods = {
     click: {
@@ -92,9 +92,6 @@ function setupEventDelegation(container) {
 
                     const methodName = eventTypeMethods[eventType][phase];
 
-                    // 进入批量更新模式
-                    setIsBatchingUpdate(true);
-
                     // syntheticEvent 的 target 属性是不变的，点击哪个元素就是哪个元素
                     for (let domElement of domElements) {
                         if (syntheticEvent.isPropagationStopped()) {
@@ -107,8 +104,8 @@ function setupEventDelegation(container) {
                         domElement.reactEvents?.[methodName]?.(syntheticEvent);
                     }
 
-                    // 刷新有待更新的组件
-                    flushDirtyComponents();
+                    // 调度更新
+                    scheduleUpdate();
                 },
                 phase === 'capture',
             );
